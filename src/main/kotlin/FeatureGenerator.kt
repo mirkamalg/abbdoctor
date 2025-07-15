@@ -469,7 +469,7 @@ interface ${featureCamel}Component : ${featureCamel}Api {
 package $basePackage.impl.di
 
 import iba.mobilbank.core.moduleinjector.BaseDependencies
-
+0
 interface ${featureCamel}Dependencies : BaseDependencies {
     // TODO: Define dependencies required from the host app or other modules
 }
