@@ -43,6 +43,9 @@ class FeatureGenerator(
 
             // Update settings.gradle.kts
             updateSettingsGradle(normalizedFeatureName, tribe)
+
+            // Update app module dependencies
+            updateAppModuleDependencies(normalizedFeatureName)
         }
     }
 
@@ -595,4 +598,34 @@ class ${featureCamel}PageViewModel @Inject constructor() : ViewModel() {
     // TODO: Implement ViewModel logic
 }
 """.trimIndent()
+
+    private fun updateAppModuleDependencies(featureName: String) {
+        val appBuildFile = projectRoot.findFileByRelativePath("app/build.gradle.kts")
+        if (appBuildFile == null || !appBuildFile.exists()) {
+            println("Warning: Could not find app/build.gradle.kts file")
+            return
+        }
+
+        val content = String(appBuildFile.contentsToByteArray())
+
+        // Check if dependencies already exist
+        if (content.contains("feature-$featureName-api") || content.contains("feature-$featureName-impl")) {
+            println("Feature dependencies already exist in app module")
+            return
+        }
+
+        // Add dependencies to the end of dependencies block
+        val apiDependency = "    implementation(project(\":feature-$featureName-api\"))"
+        val implDependency = "    implementation(project(\":feature-$featureName-impl\"))"
+        val newDependencies = "\n$apiDependency\n$implDependency"
+
+        val dependenciesPattern = Regex("""(dependencies\s*\{[^}]*)\}""", RegexOption.DOT_MATCHES_ALL)
+        val newContent = dependenciesPattern.replace(content) { matchResult ->
+            "${matchResult.groupValues[1]}$newDependencies\n}"
+        }
+
+        appBuildFile.setBinaryContent(newContent.toByteArray())
+        println("Added feature dependencies to app module: feature-$featureName")
+    }
+
 }
