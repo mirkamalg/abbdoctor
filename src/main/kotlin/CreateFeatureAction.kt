@@ -16,6 +16,7 @@ import javax.swing.JTextField
 class CreateFeatureAction : AnAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
+        println("CreateFeatureAction.actionPerformed() called!")
         val project = e.project ?: return
         val projectRoot = project.baseDir ?: run {
             Messages.showErrorDialog("Could not find project root directory", "Error")
@@ -27,10 +28,50 @@ class CreateFeatureAction : AnAction() {
             val featureName = dialog.getFeatureName()
             val tribe = dialog.getTribe()
 
+            // Pre-validate before attempting generation
+            val featureDir = projectRoot.findChild("Feature")
+            if (featureDir == null || !featureDir.isDirectory) {
+                Messages.showErrorDialog(
+                    "Project structure error: 'Feature' folder not found in project root.\n" +
+                            "Please ensure your project has the correct folder structure.",
+                    "Project Structure Error"
+                )
+                return
+            }
+
+            val tribeDir = featureDir.findChild(tribe)
+            if (tribeDir == null || !tribeDir.isDirectory) {
+                val availableTribes = featureDir.children
+                    .filter { it.isDirectory }
+                    .map { it.name }
+                    .sorted()
+
+                val message = if (availableTribes.isEmpty()) {
+                    "Tribe folder 'Feature/$tribe' does not exist.\n" +
+                            "No existing tribes found. Please create the tribe folder first."
+                } else {
+                    "Tribe folder 'Feature/$tribe' does not exist.\n\n" +
+                            "Available tribes:\n${availableTribes.joinToString("\n") { "• $it" }}"
+                }
+
+                Messages.showErrorDialog(message, "Tribe Not Found")
+                return
+            }
+
             try {
                 val generator = FeatureGenerator(projectRoot)
                 generator.generateFeature(featureName, tribe)
-                Messages.showInfoMessage("Feature modules created successfully!", "Success")
+                Messages.showInfoMessage(
+                    "Feature modules created successfully!\n\n" +
+                            "Created:\n" +
+                            "• Feature/$tribe/feature-${
+                                featureName.lowercase().replace('_', '-').replace(' ', '-')
+                            }-api\n" +
+                            "• Feature/$tribe/feature-${
+                                featureName.lowercase().replace('_', '-').replace(' ', '-')
+                            }-impl",
+                    "Success"
+                )
             } catch (ex: Exception) {
                 Messages.showErrorDialog("Error creating feature: ${ex.message}", "Error")
             }

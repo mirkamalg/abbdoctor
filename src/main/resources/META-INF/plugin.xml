@@ -2,7 +2,7 @@
 <idea-plugin>
     <id>com.mirkamalg.abbdoctor</id>
     <name>ABBDoctor</name>
-    <version>0.0.1</version>
+    <version>0.0.3</version>
     <vendor email="mirkamal.gasimov@abb-bank.az" url="https://code.kotlin.az">Mirkamal Gasimov</vendor>
 
     <description><![CDATA[
@@ -14,7 +14,7 @@
         Getting started 🚀
     ]]></change-notes>
 
-    <idea-version since-build="223.0"/>
+    <idea-version since-build="251.0"/>
 
     <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.modules.java</depends>

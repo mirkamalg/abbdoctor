@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.mirkamalg"
-version = "0.0.1"
+version = "0.0.3"
 
 repositories {
     mavenCentral()
@@ -18,7 +18,8 @@ dependencies {
     testImplementation(kotlin("test"))
 
     intellijPlatform {
-        intellijIdeaCommunity("2023.3")
+//        intellijIdeaCommunity("2025.1")
+        androidStudio("2025.1.1.13")
     }
 }
 

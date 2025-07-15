@@ -43,6 +43,9 @@ class FeatureGenerator(
 
             // Update settings.gradle.kts
             updateSettingsGradle(normalizedFeatureName, tribe)
+
+            // Update app module dependencies
+            updateAppModuleDependencies(normalizedFeatureName)
         }
     }
 
@@ -114,6 +117,7 @@ class FeatureGenerator(
 
         // Create DI files
         createFile(diDir, "${featureCamel}Component.kt", getComponentClass(basePackage, featureCamel))
+        createFile(diDir, "${featureCamel}Dependencies.kt", getDependenciesInterface(basePackage, featureCamel))
         createFile(diModulesDir, "${featureCamel}ProviderModule.kt", getProviderModule(basePackage, featureCamel))
         createFile(diModulesDir, "${featureCamel}BindModule.kt", getBindModule(basePackage, featureCamel))
 
@@ -440,15 +444,35 @@ import iba.mobilbank.core.moduleinjector.FeatureScope
 import $basePackage.api.${featureCamel}Api
 import $basePackage.impl.di.modules.${featureCamel}ProviderModule
 import $basePackage.impl.di.modules.${featureCamel}BindModule
+import $basePackage.impl.di.${featureCamel}Dependencies
 
 @FeatureScope
 @Component(
     modules = [
         ${featureCamel}ProviderModule::class,
         ${featureCamel}BindModule::class
-    ]
+    ],
+    dependencies = [${featureCamel}Dependencies::class]
 )
-interface ${featureCamel}Component : ${featureCamel}Api
+interface ${featureCamel}Component : ${featureCamel}Api {
+    companion object {
+        fun initAndGet(dependencies: ${featureCamel}Dependencies): ${featureCamel}Component {
+            return Dagger${featureCamel}Component.builder()
+                .${featureCamel.replaceFirstChar { it.lowercase() }}Dependencies(dependencies)
+                .build()
+        }
+    }
+}
+""".trimIndent()
+
+    private fun getDependenciesInterface(basePackage: String, featureCamel: String) = """
+package $basePackage.impl.di
+
+import iba.mobilbank.core.moduleinjector.BaseDependencies
+0
+interface ${featureCamel}Dependencies : BaseDependencies {
+    // TODO: Define dependencies required from the host app or other modules
+}
 """.trimIndent()
 
     private fun getProviderModule(basePackage: String, featureCamel: String) = """
@@ -595,4 +619,34 @@ class ${featureCamel}PageViewModel @Inject constructor() : ViewModel() {
     // TODO: Implement ViewModel logic
 }
 """.trimIndent()
+
+    private fun updateAppModuleDependencies(featureName: String) {
+        val appBuildFile = projectRoot.findFileByRelativePath("app/build.gradle.kts")
+        if (appBuildFile == null || !appBuildFile.exists()) {
+            println("Warning: Could not find app/build.gradle.kts file")
+            return
+        }
+
+        val content = String(appBuildFile.contentsToByteArray())
+
+        // Check if dependencies already exist
+        if (content.contains("feature-$featureName-api") || content.contains("feature-$featureName-impl")) {
+            println("Feature dependencies already exist in app module")
+            return
+        }
+
+        // Add dependencies to the end of dependencies block
+        val apiDependency = "    implementation(project(\":feature-$featureName-api\"))"
+        val implDependency = "    implementation(project(\":feature-$featureName-impl\"))"
+        val newDependencies = "\n$apiDependency\n$implDependency"
+
+        val dependenciesPattern = Regex("""(dependencies\s*\{[^}]*)\}""", RegexOption.DOT_MATCHES_ALL)
+        val newContent = dependenciesPattern.replace(content) { matchResult ->
+            "${matchResult.groupValues[1]}$newDependencies\n}"
+        }
+
+        appBuildFile.setBinaryContent(newContent.toByteArray())
+        println("Added feature dependencies to app module: feature-$featureName")
+    }
+
 }
