@@ -117,6 +117,7 @@ class FeatureGenerator(
 
         // Create DI files
         createFile(diDir, "${featureCamel}Component.kt", getComponentClass(basePackage, featureCamel))
+        createFile(diDir, "${featureCamel}Dependencies.kt", getDependenciesInterface(basePackage, featureCamel))
         createFile(diModulesDir, "${featureCamel}ProviderModule.kt", getProviderModule(basePackage, featureCamel))
         createFile(diModulesDir, "${featureCamel}BindModule.kt", getBindModule(basePackage, featureCamel))
 
@@ -443,15 +444,35 @@ import iba.mobilbank.core.moduleinjector.FeatureScope
 import $basePackage.api.${featureCamel}Api
 import $basePackage.impl.di.modules.${featureCamel}ProviderModule
 import $basePackage.impl.di.modules.${featureCamel}BindModule
+import $basePackage.impl.di.${featureCamel}Dependencies
 
 @FeatureScope
 @Component(
     modules = [
         ${featureCamel}ProviderModule::class,
         ${featureCamel}BindModule::class
-    ]
+    ],
+    dependencies = [${featureCamel}Dependencies::class]
 )
-interface ${featureCamel}Component : ${featureCamel}Api
+interface ${featureCamel}Component : ${featureCamel}Api {
+    companion object {
+        fun initAndGet(dependencies: ${featureCamel}Dependencies): ${featureCamel}Component {
+            return Dagger${featureCamel}Component.builder()
+                .${featureCamel.replaceFirstChar { it.lowercase() }}Dependencies(dependencies)
+                .build()
+        }
+    }
+}
+""".trimIndent()
+
+    private fun getDependenciesInterface(basePackage: String, featureCamel: String) = """
+package $basePackage.impl.di
+
+import iba.mobilbank.core.moduleinjector.BaseDependencies
+
+interface ${featureCamel}Dependencies : BaseDependencies {
+    // TODO: Define dependencies required from the host app or other modules
+}
 """.trimIndent()
 
     private fun getProviderModule(basePackage: String, featureCamel: String) = """
