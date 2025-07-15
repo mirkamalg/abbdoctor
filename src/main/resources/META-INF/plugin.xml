@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<idea-plugin>
+    <id>com.mirkamalg.abbdoctor</id>
+    <name>ABBDoctor</name>
+    <version>0.0.1</version>
+    <vendor email="mirkamal.gasimov@abb-bank.az" url="https://code.kotlin.az">Mirkamal Gasimov</vendor>
+
+    <description><![CDATA[
+        Plugin to generate Android feature modules with API and implementation structure of ABB.
+        Creates the complete directory structure and boilerplate code for new features.
+    ]]></description>
+
+    <change-notes><![CDATA[
+        Getting started 🚀
+    ]]></change-notes>
+
+    <idea-version since-build="223.0"/>
+
+    <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.java</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+    </extensions>
+
+    <actions>
+        <!-- Action for Generate menu (like the working plugin) -->
+        <action id="com.mirkamalg.CreateFeatureAction"
+                class="com.mirkamalg.CreateFeatureAction"
+                text="Feature Module from Template"
+                icon="/icons/abb.svg"
+                description="Generate Android feature modules with API and implementation structure">
+            <add-to-group group-id="GenerateGroup" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift F"/>
+        </action>
+
+        <!-- Action for New menu (like the working plugin) -->
+        <action id="com.mirkamalg.CreateFeatureActionNew"
+                class="com.mirkamalg.CreateFeatureAction"
+                text="Feature Module"
+                icon="/icons/abb.svg"
+                description="Generate Android feature modules">
+            <add-to-group group-id="NewGroup" anchor="before" relative-to-action="NewFile"/>
+        </action>
+    </actions>
+</idea-plugin>
