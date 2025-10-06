@@ -112,8 +112,7 @@ class FeatureGenerator(
         val presentationDir = createDirectory(packageDir, "presentation")
         val presentationMapperDir = createDirectory(presentationDir, "mapper")
         val presentationUiDir = createDirectory(presentationDir, "ui")
-        val presentationPageDir = createDirectory(presentationUiDir, "page")
-        val presentationViewModelDir = createDirectory(presentationPageDir, "viewmodel")
+        val presentationViewModelDir = createDirectory(presentationUiDir, "viewmodel")
 
         // Create DI files
         createFile(diDir, "${featureCamel}Component.kt", getComponentClass(basePackage, featureCamel))
@@ -144,7 +143,7 @@ class FeatureGenerator(
 
         // Create presentation layer files
         createFile(presentationMapperDir, "${featureCamel}Mapper.kt", getPresentationMapper(basePackage, featureCamel))
-        createFile(presentationViewModelDir, "${featureCamel}PageViewModel.kt", getViewModel(basePackage, featureCamel))
+        createFile(presentationViewModelDir, "${featureCamel}ViewModel.kt", getViewModel(basePackage, featureCamel))
     }
 
     private fun updateSettingsGradle(featureName: String, tribe: String) {
@@ -190,18 +189,18 @@ class FeatureGenerator(
     // Template methods for file contents
     private fun getApiBuildGradle(basePackage: String) = """
 plugins {
-    id(Plugins.library)
-    id(Plugins.kotlinAndroid)
-    id(Plugins.kotlinParcelize)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.parcelize)
 }
 
 android {
     namespace = "$basePackage.api"
-    compileSdk = AppConfig.compileSdk
+    compileSdk = libs.versions.projectCompileSdkVersion.get().toInt()
 
     defaultConfig {
-        minSdk = AppConfig.DefaultConfig.minSdk
-        testInstrumentationRunner = AppConfig.DefaultConfig.androidTestInstrumentation
+        minSdk = libs.versions.projectMinSdkVersion.get().toInt()
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
     flavorDimensions += "default"
@@ -214,36 +213,38 @@ android {
         }
     }
     buildTypes {
-        getByName(AppConfig.BuildTypes.release) {
+        release {
+            // In AGP 8.4.2 minify mechanism changed. Now minification is performed separately for each module immediately after its assembly.
+            // Because of this, R8 thinks that the code in the module is not used by anyone, and simply deletes it!
+            // FIX: minification enabled only in app:module. in that case it will work as before
             isMinifyEnabled = false
             proguardFiles(
-                getDefaultProguardFile(AppConfig.BuildTypes.defaultProguardFile),
-                AppConfig.BuildTypes.proguardRules
-            )
-        }
-        getByName(AppConfig.BuildTypes.debug) {
-            isMinifyEnabled = AppConfig.BuildTypes.debugMinifyEnabled
-            proguardFiles(
-                getDefaultProguardFile(AppConfig.BuildTypes.defaultProguardFile),
-                AppConfig.BuildTypes.proguardRules
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
             )
         }
     }
     compileOptions {
-        sourceCompatibility = AppConfig.CompileOptions.sourceCompatibility
-        targetCompatibility = AppConfig.CompileOptions.targetCompatibility
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
-        jvmTarget = AppConfig.KotlinOptions.jvmTarget
+        jvmTarget = libs.versions.projectJvmTarget.get()
     }
+
     buildFeatures {
-        buildConfig = AppConfig.BuildFeatures.buildConfig
+        buildConfig = true
     }
 }
 
 dependencies {
     implementation(project(":core-module-injector"))
     implementation(project(":core-remote-config-api"))
+
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.okhttp)
+    implementation(libs.gson)
 }
 """.trimIndent()
 
@@ -295,20 +296,22 @@ interface ${featureCamel}FeatureLauncher {
 
     private fun getImplBuildGradle(basePackage: String, featureName: String) = """
 plugins {
-    id(Plugins.library)
-    id(Plugins.kotlinAndroid)
-    id(Plugins.kotlinKapt)
-    id("org.jetbrains.kotlin.android")
-    id(Plugins.safeargs)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kapt)
+    alias(libs.plugins.parcelize)
+    alias(libs.plugins.safeargs.kotlin)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.compose.compiler)
 }
 
 android {
     namespace = "$basePackage.impl"
-    compileSdk = AppConfig.compileSdk
+    compileSdk = libs.versions.projectCompileSdkVersion.get().toInt()
 
     defaultConfig {
-        minSdk = AppConfig.DefaultConfig.minSdk
-        testInstrumentationRunner = AppConfig.DefaultConfig.androidTestInstrumentation
+        minSdk = libs.versions.projectMinSdkVersion.get().toInt()
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
     flavorDimensions += "default"
@@ -321,37 +324,42 @@ android {
         }
     }
     buildTypes {
-        getByName(AppConfig.BuildTypes.release) {
+        release {
+            // In AGP 8.4.2 minify mechanism changed. Now minification is performed separately for each module immediately after its assembly.
+            // Because of this, R8 thinks that the code in the module is not used by anyone, and simply deletes it!
+            // FIX: minification enabled only in app:module. in that case it will work as before
             isMinifyEnabled = false
             proguardFiles(
-                getDefaultProguardFile(AppConfig.BuildTypes.defaultProguardFile),
-                AppConfig.BuildTypes.proguardRules
-            )
-        }
-        getByName(AppConfig.BuildTypes.debug) {
-            isMinifyEnabled = AppConfig.BuildTypes.debugMinifyEnabled
-            proguardFiles(
-                getDefaultProguardFile(AppConfig.BuildTypes.defaultProguardFile),
-                AppConfig.BuildTypes.proguardRules
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
             )
         }
     }
     compileOptions {
-        sourceCompatibility = AppConfig.CompileOptions.sourceCompatibility
-        targetCompatibility = AppConfig.CompileOptions.targetCompatibility
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
-        jvmTarget = AppConfig.KotlinOptions.jvmTarget
+        jvmTarget = libs.versions.projectJvmTarget.get()
     }
+
     buildFeatures {
-        buildConfig = AppConfig.BuildFeatures.buildConfig
+        buildConfig = true
         viewBinding = true
+        compose = true
     }
 }
 
 dependencies {
     implementation(project(":feature-$featureName-api"))
-    // Add other feature dependencies as needed
+
+    implementation(project(":ibam-design-system:xml-lib"))
+    implementation(project(":ibam-design-system:compose-lib"))
+    implementation(project(":ibam-design-system:icon-kit"))
+    //TODO will be deleted after complete design-system development. Currently this dependency only used for AbbSnackBar
+    implementation(project(":framework:ui-toolkit"))
+
     implementation(project(":core-module-injector"))
     implementation(project(":core-remote-config-api"))
     implementation(project(":core-network-api"))
@@ -359,18 +367,19 @@ dependencies {
     implementation(project(":core-deeplink-api"))
     implementation(project(":core-ui"))
     implementation(project(":core-localization"))
-    implementation(project(":framework:ui-toolkit"))
-    implementation(project(":ibam-design-system:xml-lib"))
-    implementation(DepsDefault.Jakewharton.Timber.timber)
-    implementation(DepsDefault.Google.Dagger.dagger)
-    kapt(listOf(DepsDefault.Google.Dagger.daggerCompiler))
-    implementation(DepsDefault.AndroidX.Appcompat.appcompat)
-    implementation(DepsDefault.AndroidX.Constraintlayout.constraintlayout)
-    implementation(DepsDefault.AndroidX.Navigation.navigationFragmentKtx)
-    implementation(DepsDefault.AndroidX.Navigation.navigationUiKtx)
-    implementation(DepsDefault.AndroidX.Swiperefreshlayout.swiperefreshlayout)
-    implementation(DepsThirdParty.Other.adapterDelegate)
-    implementation(DepsDefault.Google.Gson.gson)
+
+    implementation(libs.timber)
+    kapt(libs.dagger.compiler)
+    implementation(libs.dagger)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.navigation.fragment.ktx)
+    implementation(libs.androidx.navigation.ui.ktx)
+    implementation(libs.kotlinx.serialization.json)
+
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.androidx.compose.foundation)
 }
 """.trimIndent()
 
@@ -402,7 +411,6 @@ dependencies {
 
 # Keep all classes in a specific package
 -keep class $basePackage.impl.data.model.** { *; }
--keep class $basePackage.impl.data.model.** { *; }
 
 # Keep any enums used in your API
 -keepclassmembers class * extends java.lang.Enum {
@@ -421,7 +429,6 @@ dependencies {
 -dontwarn iba.mobilbank.common.R${'$'}color
 
 # Keep all classes in a specific package
--keep class $basePackage.impl.data.model.** { *; }
 -keep class $basePackage.impl.data.model.** { *; }
 
 # Keep any enums used in your API
@@ -469,7 +476,7 @@ interface ${featureCamel}Component : ${featureCamel}Api {
 package $basePackage.impl.di
 
 import iba.mobilbank.core.moduleinjector.BaseDependencies
-0
+
 interface ${featureCamel}Dependencies : BaseDependencies {
     // TODO: Define dependencies required from the host app or other modules
 }
@@ -610,12 +617,12 @@ class ${featureCamel}Mapper @Inject constructor() {
 """.trimIndent()
 
     private fun getViewModel(basePackage: String, featureCamel: String) = """
-package $basePackage.impl.presentation.ui.page.viewmodel
+package $basePackage.impl.presentation.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import javax.inject.Inject
 
-class ${featureCamel}PageViewModel @Inject constructor() : ViewModel() {
+class ${featureCamel}ViewModel @Inject constructor() : ViewModel() {
     // TODO: Implement ViewModel logic
 }
 """.trimIndent()
@@ -648,5 +655,4 @@ class ${featureCamel}PageViewModel @Inject constructor() : ViewModel() {
         appBuildFile.setBinaryContent(newContent.toByteArray())
         println("Added feature dependencies to app module: feature-$featureName")
     }
-
 }
